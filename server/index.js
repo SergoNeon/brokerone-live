@@ -1,3 +1,4 @@
+import {validatePublicationInput,publicationReadiness,isManager} from './publication-validation.js';
 import http from 'node:http';
 import {Pool} from 'pg';
 import {createRemoteJWKSet,jwtVerify} from 'jose';
@@ -20,17 +21,19 @@ async function handle(req,res){if(req.headers.origin&&req.headers.origin!==origi
  if(publishRoute){
   if(req.method!=='POST')return respond(res,405,{error:'Method not allowed'});
   const input=await jsonBody(req);
-  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.publish!=='boolean'||Object.keys(input).some(k=>k!=='publish'))return respond(res,400,{error:'Expected {publish:boolean}'});
+  const inputError=validatePublicationInput(input);if(inputError)return respond(res,400,{error:inputError});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
    const membership=await client.query('SELECT agent_id AS id,office_id,agent_role AS role FROM public.crm_membership($1)',[subject]);
    if(membership.rowCount!==1)throw Object.assign(Error('No active office membership'),{status:403});
    const actor=membership.rows[0];
-   if(!['manager','admin','owner'].includes(actor.role))throw Object.assign(Error('Manager approval required'),{status:403});
+   if(!isManager(actor.role))throw Object.assign(Error('Manager approval required'),{status:403});
    await client.query("SELECT set_config('app.office_id',$1,true),set_config('app.agent_id',$2,true)",[actor.office_id,actor.id]);
-   const result=await client.query(`UPDATE public.properties SET is_published=$1,published_at=CASE WHEN $1 THEN now() ELSE NULL END,publication_reviewed_by=$2,publication_reviewed_at=now() WHERE id=$3 AND office_id=$4 AND ($1=false OR (status='available' AND NULLIF(TRIM(COALESCE(public_title,title)),'') IS NOT NULL AND NULLIF(TRIM(public_city),'') IS NOT NULL AND public_rooms IS NOT NULL AND asking_price_ils IS NOT NULL AND public_image_url ~ '^https://')) RETURNING id,is_published,published_at`,[input.publish,actor.id,publishRoute[1],actor.office_id]);
-   if(result.rowCount!==1)throw Object.assign(Error('Property not found or missing publication requirements'),{status:422});
+   const current=await client.query('SELECT id,title,public_title,public_city,public_rooms,asking_price_ils,public_image_url,listing_type,status FROM public.properties WHERE id=$1 AND office_id=$2 FOR UPDATE',[publishRoute[1],actor.office_id]);
+   if(current.rowCount!==1)throw Object.assign(Error('Property not found'),{status:404});
+   if(input.publish){const missing=publicationReadiness(current.rows[0]);if(missing.length)throw Object.assign(Error(`Cannot publish; missing or invalid: ${missing.join(', ')}`),{status:422})}
+   const result=await client.query('UPDATE public.properties SET is_published=$1,published_at=CASE WHEN $1 THEN now() ELSE NULL END,publication_reviewed_by=$2,publication_reviewed_at=now() WHERE id=$3 AND office_id=$4 RETURNING id,is_published,published_at',[input.publish,actor.id,publishRoute[1],actor.office_id]);
    await client.query('COMMIT');return respond(res,200,{item:result.rows[0]});
   }catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
  }

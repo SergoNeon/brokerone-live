@@ -27,3 +27,5 @@ The original API membership query would fail under correctly enforced row-level 
 For the server you provide: Ubuntu LTS or Debian, SSH with an unprivileged sudo user, domain/subdomain pointing to the host, TLS certificate, Node 20+, and a process supervisor/reverse proxy. Share connection details through a secure mechanism, not a password pasted into a public repository. Configure OIDC provider before enabling API access.
 
 Publishing implementation: see `publishing-contract.md`. A manager-only authenticated publication endpoint is now present in source but depends on unapproved migrations, tested RLS and OIDC configuration; it is not live.
+
+Publication checks: `node publication-test.mjs` and `node smoke-test.mjs`. Public feed requires a separately reviewed read-only database access design under FORCE RLS; do not run the API with a table-owner or BYPASSRLS connection to make the public feed work.
