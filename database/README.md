@@ -10,3 +10,7 @@
 4. Keep API secrets and personal customer information out of the public demo repository.
 
 The GitHub Pages demo is **local-only**, not connected to this schema.
+
+## Authorization policy draft
+
+`access-policy.sql` contains a **draft** PostgreSQL RLS strategy for one office and several agents. It is not deployed or tested against a running database. A trusted API must verify identity and set `app.office_id` and `app.agent_id` transaction-locally; untrusted browsers must never receive direct database credentials. Do not use in production without database role/grant hardening, full write-policy review, tests for privilege escalation and transaction pooling, and migration tooling.
