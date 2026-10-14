@@ -13,3 +13,9 @@ Requires Node 20+, PostgreSQL, an existing trusted OpenID Connect identity provi
 Current routes: `GET /health`, `GET /v1/{clients,properties,deals,tasks}`, `POST /v1/{clients,properties,deals,tasks}`. The service validates bearer JWT signatures using the provider JWKS, binds database tenant context per transaction, and relies on PostgreSQL row-level security. The frontend is **not yet connected**. Do not publish database credentials or secrets to GitHub Pages.
 
 Known gaps: refresh/session UX, input validation by resource, rate limits, audit log, invitation flow, pagination, operational monitoring, migrations, RLS integration tests, deployment, and backup strategy. Until these are completed this is not production-ready.
+
+## Security review notes
+
+- The existing RLS policy file uses `crm_is_manager()` from within the agents policy; this requires the reviewed security-definer hardening in `database/rls-hardening.sql` and correct function ownership. Do **not** deploy until that ownership and permissions are configured and tested.
+- New records require an active assigned agent in the same office; ordinary agents can assign only themselves.
+- The service must be hosted behind HTTPS and use a managed OIDC identity provider; no user/password implementation is included here.
