@@ -1,0 +1,24 @@
+[Unit]
+Description=BrokerOne Office API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brokerone
+Group=brokerone
+WorkingDirectory=/opt/brokerone/api
+EnvironmentFile=/etc/brokerone/api.env
+ExecStart=/usr/bin/node /opt/brokerone/api/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/brokerone/api
+UMask=0077
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

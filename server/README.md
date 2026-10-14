@@ -43,3 +43,7 @@ Publication checks: `node publication-test.mjs` and `node smoke-test.mjs`. Publi
 `../crm-api-client.js` is a separate ES module for authenticated office operations (`list`, `create`, `update`, `publish`). It requires an access-token provider from a properly configured OIDC login flow; it never stores tokens, uses no cookie credentials, and never silently writes to localStorage when a server request fails. HTTPS is mandatory outside local development. Tests: `node crm-api-client-test.mjs`.
 
 The current browser CRM still uses local demo data. This module is **not wired into it** until OIDC, HTTPS, office membership, RLS, and API hosting are fully configured and tested. Do not present it as an active server connection.
+
+## Production service preflight (not activated)
+
+`brokerone-api.service` is a proposed restricted systemd unit for a dedicated `brokerone` Unix user. `deployment-check.sh` refuses startup when Node.js 20+, a private environment file, or required variables are missing. Never write database credentials into the repository or the public web root. Only enable the service after domain/TLS, OIDC issuer and login flow, restricted DB role, verified office-scoped RLS, and backup/restore testing. Do not expose port 8080 publicly. Keep the current static CRM separate until the API is proven safe.
