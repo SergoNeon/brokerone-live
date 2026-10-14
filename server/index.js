@@ -1,0 +1,21 @@
+import http from 'node:http';
+import {Pool} from 'pg';
+import {createRemoteJWKSet,jwtVerify} from 'jose';
+
+const required=['DATABASE_URL','OIDC_ISSUER','OIDC_AUDIENCE','OIDC_JWKS_URL','ALLOWED_ORIGIN'];
+for(const key of required)if(!process.env[key])throw Error(`Missing ${key}`);
+const origin=new URL(process.env.ALLOWED_ORIGIN).origin;
+if(origin!==process.env.ALLOWED_ORIGIN)throw Error('ALLOWED_ORIGIN must be a single origin');
+const pool=new Pool({connectionString:process.env.DATABASE_URL,max:10});
+const jwks=createRemoteJWKSet(new URL(process.env.OIDC_JWKS_URL));
+const resources={clients:['id','name','phone','email','notes','assigned_agent_id'],properties:['id','title','address','asking_price_ils','status','assigned_agent_id'],deals:['id','status','agreed_price_ils','commission_rate','assigned_agent_id'],tasks:['id','title','due_at','completed','assigned_agent_id']};
+function respond(res,status,data){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':origin,'vary':'Origin','x-content-type-options':'nosniff'});res.end(JSON.stringify(data))}
+async function authenticate(req){const match=/^Bearer (\S+)$/.exec(req.headers.authorization||'');if(!match)throw Object.assign(Error('Authentication required'),{status:401});const {payload}=await jwtVerify(match[1],jwks,{issuer:process.env.OIDC_ISSUER,audience:process.env.OIDC_AUDIENCE,algorithms:['RS256']});if(!payload.sub)throw Object.assign(Error('Invalid subject'),{status:401});return payload.sub}
+async function jsonBody(req){let body='';for await(const part of req){body+=part;if(body.length>100000)throw Object.assign(Error('Request too large'),{status:413})}try{return JSON.parse(body)}catch{throw Object.assign(Error('Invalid JSON'),{status:400})}}
+async function handle(req,res){if(req.headers.origin&&req.headers.origin!==origin)return respond(res,403,{error:'Origin not allowed'});if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':origin,'access-control-allow-methods':'GET,POST','access-control-allow-headers':'authorization,content-type','vary':'Origin'});return res.end()}
+ const url=new URL(req.url,'http://localhost');if(url.pathname==='/health'&&req.method==='GET')return respond(res,200,{status:'ok'});
+ const subject=await authenticate(req);const parts=url.pathname.split('/').filter(Boolean);if(parts.length!==2||parts[0]!=='v1'||!resources[parts[1]])return respond(res,404,{error:'Not found'});const table=parts[1],allowed=resources[table];const client=await pool.connect();try{await client.query('BEGIN');const user=await client.query('SELECT id,office_id,role FROM agents WHERE auth_subject=$1 AND active=true',[subject]);if(user.rowCount!==1)throw Object.assign(Error('No active office membership'),{status:403});const actor=user.rows[0];await client.query("SELECT set_config('app.office_id',$1,true),set_config('app.agent_id',$2,true)",[actor.office_id,actor.id]);let output,status=200;
+ if(req.method==='GET'){const result=await client.query(`SELECT ${allowed.join(',')} FROM ${table} ORDER BY id DESC LIMIT 200`);output={items:result.rows}}
+ else if(req.method==='POST'){const body=await jsonBody(req);if(!body||typeof body!=='object'||Array.isArray(body))throw Object.assign(Error('Invalid record'),{status:400});const fields=Object.keys(body);if(!fields.length||fields.some(k=>!allowed.includes(k)||k==='id'))throw Object.assign(Error('Unsupported fields'),{status:400});const columns=['office_id',...fields];const values=[actor.office_id,...fields.map(k=>body[k])];const placeholders=columns.map((_,i)=>`$${i+1}`).join(',');const result=await client.query(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders}) RETURNING ${allowed.join(',')}`,values);output={item:result.rows[0]};status=201}
+ else throw Object.assign(Error('Method not allowed'),{status:405});await client.query('COMMIT');return respond(res,status,output)}catch(err){await client.query('ROLLBACK');throw err}finally{client.release()}}
+http.createServer((req,res)=>handle(req,res).catch(err=>{const status=err.status||500;if(status>=500)console.error('API error',err);respond(res,status,{error:status>=500?'Internal server error':err.message})})).listen(Number(process.env.PORT)||8080,()=>console.log('BrokerOne API listening'));
