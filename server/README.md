@@ -37,3 +37,9 @@ Publication checks: `node publication-test.mjs` and `node smoke-test.mjs`. Publi
 ## Input validation and error handling
 
 `api-validation.js` validates allowlisted record input for both create and update operations. `api-validation-test.mjs` covers required fields, malformed emails, UUIDs, oversized strings, and safe HTTP error mapping. Authentication failures (expired/invalid JWTs) return 401 instead of a generic 500; known database constraint errors return 400/409 without exposing database internals. Run `node api-validation-test.mjs`, `node publication-test.mjs`, and `node smoke-test.mjs` before deployment. Full integration tests against a disposable Postgres tenant and a real OIDC provider are still required.
+
+## Browser-to-API integration module
+
+`../crm-api-client.js` is a separate ES module for authenticated office operations (`list`, `create`, `update`, `publish`). It requires an access-token provider from a properly configured OIDC login flow; it never stores tokens, uses no cookie credentials, and never silently writes to localStorage when a server request fails. HTTPS is mandatory outside local development. Tests: `node crm-api-client-test.mjs`.
+
+The current browser CRM still uses local demo data. This module is **not wired into it** until OIDC, HTTPS, office membership, RLS, and API hosting are fully configured and tested. Do not present it as an active server connection.

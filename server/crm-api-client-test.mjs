@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {createBrokerOneClient,BrokerOneApiError} from '../crm-api-client.js';
+let calls=[];
+const fetchImpl=async(url,options)=>{calls.push({url:String(url),options});return {ok:true,status:200,json:async()=>({items:[]})}};
+const api=createBrokerOneClient({baseUrl:'https://example.org/api',getAccessToken:async()=> 'example-token',fetchImpl});
+await api.list('clients');assert.equal(calls[0].url,'https://example.org/api/v1/clients');assert.equal(calls[0].options.headers.Authorization,'Bearer example-token');assert.equal(calls[0].options.credentials,'omit');
+await api.update('properties','123e4567-e89b-12d3-a456-426614174000',{title:'Apartment'});assert.equal(calls[1].options.method,'PATCH');
+await api.publish('123e4567-e89b-12d3-a456-426614174000',false);assert.equal(calls[2].options.body,'{"publish":false}');
+assert.throws(()=>api.list('agents'),/Unsupported/);
+assert.throws(()=>api.update('clients','invalid',{}),/Invalid/);
+assert.throws(()=>createBrokerOneClient({baseUrl:'http://example.org',getAccessToken:async()=>''}),/HTTPS/);
+await assert.rejects(createBrokerOneClient({getAccessToken:async()=>null,fetchImpl}).list('clients'),e=>e instanceof BrokerOneApiError&&e.status===401);
+await assert.rejects(createBrokerOneClient({getAccessToken:async()=> 'x',fetchImpl:async()=>{throw Error('offline')}}).list('clients'),e=>e.status===0);
+await assert.rejects(createBrokerOneClient({getAccessToken:async()=> 'x',fetchImpl:async()=>({ok:false,status:403,json:async()=>({error:'Forbidden'})})}).list('clients'),e=>e.status===403);
+console.log('PASS CRM API client auth, routes, failure handling');
