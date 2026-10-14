@@ -15,6 +15,8 @@ try {
   assert.equal(result.rowCount,0,'Unscoped client query must not expose rows');
   const properties=await client.query('SELECT id FROM public.properties LIMIT 1');
   assert.equal(properties.rowCount,0,'Unscoped property query must not expose rows');
+  const otherTables=['offices','agents','deals','tasks'];
+  for(const table of otherTables){const rows=await client.query(`SELECT id FROM public.${table} LIMIT 1`);assert.equal(rows.rowCount,0,`Unscoped ${table} query must not expose rows`);}
  }finally{await client.query('ROLLBACK');}
  console.log('PASS live Neon least-privilege identity, six forced-RLS tables, unscoped tenant isolation');
 } catch(error){console.error('FAIL live Neon integration:',error.message);process.exitCode=1;}
