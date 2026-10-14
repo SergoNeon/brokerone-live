@@ -51,3 +51,7 @@ The current browser CRM still uses local demo data. This module is **not wired i
 ## IP-only HTTPS plan
 
 The user has chosen to retain `77.42.93.209` and not purchase a domain. `nginx-ip-https.conf.example` is a **non-active** reference configuration for an IP-address certificate. Before enabling it, obtain a trusted certificate explicitly valid for the IP address, confirm automated renewal, open port 443, test nginx syntax, and verify rollback. Do not use a self-signed certificate for staff logins. The existing HTTP site must not be used for real customer data or bearer tokens.
+
+## IP-only HTTPS activated 2026-10-14
+
+Production Nginx at `77.42.93.209` now serves the static site over trusted HTTPS and redirects HTTP to HTTPS. A Let's Encrypt `shortlived` IP SAN certificate was issued using Certbot 5.8.0 installed in `/opt/certbot-ip` (not the older apt Certbot 4.0). Certificate is currently valid until 2026-10-21. The system `certbot.timer` invokes the newer client via `/etc/systemd/system/certbot.service.d/ip-client.conf`, and `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh` reloads Nginx on renewal. A `certbot renew --dry-run --no-random-sleep-on-renew --cert-name 77.42.93.209` succeeded. Recheck timer and certificate expiration routinely: six-day certificates require dependable renewals. No API, login, or Neon integration was activated in this step.
