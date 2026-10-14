@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {validateRecord,normalizeApiError} from './api-validation.js';
+const allowed=['id','name','email','assigned_agent_id'];
+assert.equal(validateRecord('clients',{name:'Valid'},allowed),null);
+for(const value of [null,[],{}, {id:'123'}, {name:''}, {name:'  '}, {name:'x'.repeat(5001)}, {name:'Test',email:'wrong'}, {name:'Test',assigned_agent_id:'not-a-uuid'}])assert.ok(validateRecord('clients',value,allowed));
+assert.equal(normalizeApiError({code:'JWTExpired'}).status,401);
+assert.equal(normalizeApiError({code:'23505'}).status,409);
+assert.equal(normalizeApiError({code:'22P02'}).status,400);
+assert.equal(normalizeApiError(new Error('private db details')).message,'Internal server error');
+console.log('PASS record validation and safe API errors');

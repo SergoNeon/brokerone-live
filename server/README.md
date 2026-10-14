@@ -33,3 +33,7 @@ Publication checks: `node publication-test.mjs` and `node smoke-test.mjs`. Publi
 ## Authenticated record updates
 
 `PATCH /v1/{clients,properties,deals,tasks}/{uuid}` updates only allowlisted columns within the caller's office and within the row-level-security scope. Changing `assigned_agent_id` requires an active agent in the same office; regular agents cannot reassign records. A missing or inaccessible row returns 404. This route requires verified OIDC JWT and tested RLS, and is not deployed yet. No browser fallback to localStorage should silently pretend that a server write succeeded.
+
+## Input validation and error handling
+
+`api-validation.js` validates allowlisted record input for both create and update operations. `api-validation-test.mjs` covers required fields, malformed emails, UUIDs, oversized strings, and safe HTTP error mapping. Authentication failures (expired/invalid JWTs) return 401 instead of a generic 500; known database constraint errors return 400/409 without exposing database internals. Run `node api-validation-test.mjs`, `node publication-test.mjs`, and `node smoke-test.mjs` before deployment. Full integration tests against a disposable Postgres tenant and a real OIDC provider are still required.
