@@ -21,6 +21,7 @@ async function handle(req,res){if(req.headers.origin&&req.headers.origin!==origi
  const url=new URL(req.url,'http://localhost');if(url.pathname==='/health'&&req.method==='GET')return respond(res,200,{status:'ok'});
  if(url.pathname==='/public/properties'&&req.method==='GET'){const result=await pool.query("SELECT id,COALESCE(NULLIF(public_title,''),title) AS title,public_city AS city,public_rooms AS rooms,asking_price_ils AS price,public_image_url AS image,listing_type FROM properties WHERE is_published=true AND status='available' ORDER BY published_at DESC NULLS LAST LIMIT 100");return respond(res,200,{items:result.rows})}
  const subject=await authenticate(req);
+ if(url.pathname==="/v1/me"&&req.method==="GET"){const db=await pool.connect();try{await db.query("BEGIN");const membership=await db.query("SELECT agent_id AS id,office_id,agent_role AS role FROM public.crm_membership($1)",[subject]);if(membership.rowCount!==1)throw Object.assign(Error("No active office membership"),{status:403});await db.query("COMMIT");return respond(res,200,{user:membership.rows[0]})}catch(error){await db.query("ROLLBACK");throw error}finally{db.release()}}
  const publishRoute=/^\/v1\/properties\/([0-9a-fA-F-]{36})\/publication$/.exec(url.pathname);
  if(publishRoute){
   if(req.method!=='POST')return respond(res,405,{error:'Method not allowed'});
