@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {setTimeout as delay} from 'node:timers/promises';
+const port=18081;const env={...process.env,PORT:String(port),DATABASE_URL:'postgresql://invalid:invalid@127.0.0.1:1/db',OIDC_ISSUER:'https://example.org/',OIDC_AUDIENCE:'brokerone',OIDC_JWKS_URL:'https://example.org/jwks.json',ALLOWED_ORIGIN:'https://sergoneon.github.io'};
+const child=spawn(process.execPath,['index.js'],{cwd:new URL('.',import.meta.url),env,stdio:'pipe'});
+try{let ready=false;for(let i=0;i<30;i++){await delay(100);try{const r=await fetch(`http://127.0.0.1:${port}/health`);if(r.ok){ready=true;break}}catch{}}assert(ready,'Server did not start');const health=await fetch(`http://127.0.0.1:${port}/health`);assert.equal((await health.json()).status,'ok');const unauthorized=await fetch(`http://127.0.0.1:${port}/v1/clients`);assert.equal(unauthorized.status,401);const wrongOrigin=await fetch(`http://127.0.0.1:${port}/v1/clients`,{headers:{Origin:'https://untrusted.example'}});assert.equal(wrongOrigin.status,403);const cors=await fetch(`http://127.0.0.1:${port}/v1/clients`,{method:'OPTIONS',headers:{Origin:'https://sergoneon.github.io'}});assert.equal(cors.status,204);console.log('PASS health, unauthenticated rejection, origin restriction, CORS preflight')}finally{child.kill('SIGTERM')}
