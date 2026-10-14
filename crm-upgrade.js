@@ -1,0 +1,23 @@
+// Progressive workspace enhancements; all data remains in the existing browser demo store.
+const labels={ru:{workspace:'Рабочая панель',overview:'Обзор агентства',portfolio:'Портфель недвижимости',clients:'Клиентская база',deals:'Сделки и комиссии',agents:'Команда',tasks:'Контроль задач',viewings:'Показы',all:'Все статусы',open:'Активные',closed:'Завершённые',sale:'Продажа',rent:'Аренда',total:'Всего записей',new:'Создать запись',clear:'Сбросить фильтры',website:'Сайт недвижимости',storage:'Локальный режим — без синхронизации',privacy:'Не используйте реальные персональные данные до подключения защищённой базы',activity:'Рабочие разделы',noResults:'По заданным условиям ничего не найдено',today:'Сегодня',filter:'Статус',sort:'Сортировка',recent:'Новые сначала',alphabetical:'По названию'},he:{workspace:'סביבת עבודה',overview:'סקירת המשרד',portfolio:'תיק נכסים',clients:'מאגר לקוחות',deals:'עסקאות ועמלות',agents:'הצוות',tasks:'ניהול משימות',viewings:'סיורים',all:'כל הסטטוסים',open:'פעילים',closed:'הושלמו',sale:'מכירה',rent:'השכרה',total:'רשומות',new:'רשומה חדשה',clear:'ניקוי מסננים',website:'אתר הנכסים',storage:'מצב מקומי — ללא סנכרון',privacy:'אין להזין מידע אישי אמיתי לפני חיבור מאובטח',activity:'אזורי עבודה',noResults:'לא נמצאו תוצאות',today:'היום',filter:'סטטוס',sort:'מיון',recent:'חדשים קודם',alphabetical:'לפי שם'},en:{workspace:'Workspace',overview:'Agency overview',portfolio:'Property portfolio',clients:'Client directory',deals:'Deals & commissions',agents:'Team',tasks:'Task control',viewings:'Viewings',all:'All statuses',open:'Active',closed:'Completed',sale:'Sale',rent:'Rental',total:'Records',new:'Create record',clear:'Reset filters',website:'Property website',storage:'Local mode — no synchronization',privacy:'Do not enter real personal data until secure storage is connected',activity:'Workspaces',noResults:'No matching records',today:'Today',filter:'Status',sort:'Sort',recent:'Newest first',alphabetical:'By name'}};
+function workspaceEnhance(){
+ const root=document.querySelector('main');if(!root)return;
+ const l=labels[document.documentElement.lang]||labels.ru;
+ const current=document.querySelector('[data-nav].active')?.dataset.nav||'dashboard';
+ const subtitle=document.querySelector('header .muted');if(subtitle)subtitle.textContent=({dashboard:l.overview,properties:l.portfolio,clients:l.clients,deals:l.deals,agents:l.agents,tasks:l.tasks,viewings:l.viewings})[current]||l.workspace;
+ const header=document.querySelector('main>header');
+ if(header&&!document.querySelector('.crm-live-link')){const a=document.createElement('a');a.className='crm-live-link';a.href='./website.html';a.textContent=l.website+' ↗';header.querySelector('.actions')?.prepend(a)}
+ const foot=root.querySelector(':scope > p.muted');if(foot){foot.className='crm-storage-notice';foot.textContent=l.storage+' · '+l.privacy}
+ const toolbar=root.querySelector('.toolbar');if(!toolbar)return;
+ toolbar.classList.add('crm-toolbar');
+ const status=document.createElement('select');status.id='crm-status-filter';status.setAttribute('aria-label',l.filter);
+ for(const [value,label] of [['',l.all],['open',l.open],['closed',l.closed]]){const option=document.createElement('option');option.value=value;option.textContent=label;status.append(option)}
+ const sort=document.createElement('select');sort.id='crm-sort';sort.setAttribute('aria-label',l.sort);
+ for(const [value,label] of [['recent',l.recent],['alpha',l.alphabetical]]){const option=document.createElement('option');option.value=value;option.textContent=label;sort.append(option)}
+ toolbar.append(status,sort);
+ const apply=()=>{const body=root.querySelector('.panel tbody');if(!body)return;const rows=[...body.querySelectorAll('tr')];for(const row of rows){const state=(row.cells[current==='dashboard'?2:1]?.textContent||'').toLowerCase();const closed=/closed|заверш|закры|סגור|הושל/.test(state);row.hidden=status.value==='closed'?!closed:status.value==='open'?closed:false}if(sort.value==='alpha'){rows.sort((a,b)=>a.cells[current==='dashboard'?1:0].textContent.localeCompare(b.cells[current==='dashboard'?1:0].textContent)).forEach(row=>body.append(row))}else{rows.forEach(row=>body.append(row))}};
+ status.onchange=apply;sort.onchange=apply;
+ const panel=root.querySelector('.panel');if(panel){panel.classList.add('crm-records-panel');const heading=panel.querySelector('.section-heading');heading?.classList.add('crm-records-heading')}
+}
+const observer=new MutationObserver(()=>{observer.disconnect();try{workspaceEnhance()}finally{observer.observe(document.querySelector('#app'),{childList:true})}});
+observer.observe(document.querySelector('#app'),{childList:true});workspaceEnhance();
