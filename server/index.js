@@ -24,26 +24,7 @@ async function handle(req,res){if(req.headers.origin&&req.headers.origin!==origi
  if(url.pathname==='/public/properties'&&req.method==='GET')return respond(res,503,{error:'Public listings unavailable until publishing schema and tenant-safe public access are deployed'});
  const subject=await authenticate(req);
  if(url.pathname==="/v1/me"&&req.method==="GET"){const db=await pool.connect();try{await db.query("BEGIN");const membership=await db.query("SELECT agent_id AS id,office_id,agent_role AS role FROM public.crm_membership($1)",[subject]);if(membership.rowCount!==1)throw Object.assign(Error("No active office membership"),{status:403});await db.query("COMMIT");return respond(res,200,{user:membership.rows[0]})}catch(error){await db.query("ROLLBACK");throw error}finally{db.release()}}
- const publishRoute=/^\/v1\/properties\/([0-9a-fA-F-]{36})\/publication$/.exec(url.pathname);
- if(publishRoute){
-  if(req.method!=='POST')return respond(res,405,{error:'Method not allowed'});
-  const input=await jsonBody(req);
-  const inputError=validatePublicationInput(input);if(inputError)return respond(res,400,{error:inputError});
-  const client=await pool.connect();
-  try{
-   await client.query('BEGIN');
-   const membership=await client.query('SELECT agent_id AS id,office_id,agent_role AS role FROM public.crm_membership($1)',[subject]);
-   if(membership.rowCount!==1)throw Object.assign(Error('No active office membership'),{status:403});
-   const actor=membership.rows[0];
-   if(!isManager(actor.role))throw Object.assign(Error('Manager approval required'),{status:403});
-   await client.query("SELECT set_config('app.office_id',$1,true),set_config('app.agent_id',$2,true)",[actor.office_id,actor.id]);
-   const current=await client.query('SELECT id,title,public_title,public_city,public_rooms,asking_price_ils,public_image_url,listing_type,status FROM public.properties WHERE id=$1 AND office_id=$2 FOR UPDATE',[publishRoute[1],actor.office_id]);
-   if(current.rowCount!==1)throw Object.assign(Error('Property not found'),{status:404});
-   if(input.publish){const missing=publicationReadiness(current.rows[0]);if(missing.length)throw Object.assign(Error(`Cannot publish; missing or invalid: ${missing.join(', ')}`),{status:422})}
-   const result=await client.query('UPDATE public.properties SET is_published=$1,published_at=CASE WHEN $1 THEN now() ELSE NULL END,publication_reviewed_by=$2,publication_reviewed_at=now() WHERE id=$3 AND office_id=$4 RETURNING id,is_published,published_at',[input.publish,actor.id,publishRoute[1],actor.office_id]);
-   await client.query('COMMIT');return respond(res,200,{item:result.rows[0]});
-  }catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
- }
+ if(/^\/v1\/properties\/[0-9a-fA-F-]{36}\/publication$/.test(url.pathname))return respond(res,503,{error:'Publication unavailable until publishing schema migration and authorization tests complete'});
  const parts=url.pathname.split('/').filter(Boolean);if(parts[0]!=='v1'||!resources[parts[1]]||(parts.length!==2&&!(parts.length===3&&/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(parts[2]))))return respond(res,404,{error:'Not found'});const table=parts[1],allowed=resources[table];const client=await pool.connect();try{await client.query('BEGIN');const user=await client.query('SELECT agent_id AS id,office_id,agent_role AS role FROM public.crm_membership($1)',[subject]);if(user.rowCount!==1)throw Object.assign(Error('No active office membership'),{status:403});const actor=user.rows[0];await client.query("SELECT set_config('app.office_id',$1,true),set_config('app.agent_id',$2,true)",[actor.office_id,actor.id]);let output,status=200;
  if(req.method==='GET'){const result=await client.query(`SELECT ${allowed.join(',')} FROM ${table} ORDER BY id DESC LIMIT 200`);output={items:result.rows}}
  else if(req.method==='PATCH'&&parts.length===3){

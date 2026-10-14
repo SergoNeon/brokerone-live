@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 const api=readFileSync(new URL('./index.js',import.meta.url),'utf8');
 const service=readFileSync(new URL('./brokerone-api.service',import.meta.url),'utf8');
 const preflight=readFileSync(new URL('./deployment-check.sh',import.meta.url),'utf8');
+assert.match(api,/Publication unavailable until publishing schema migration/,'publication endpoint must fail closed before migration');
 assert.match(api,/jwtVerify\(/,'JWT signature verification required');
 assert.match(api,/algorithms:\['EdDSA'\]/,'JWT algorithm restricted');
 assert.match(api,/crm_membership\(\$1\)/,'membership resolved on server');
