@@ -25,3 +25,5 @@ Known gaps: refresh/session UX, input validation by resource, rate limits, audit
 The original API membership query would fail under correctly enforced row-level security because it ran before tenant context was set. `database/auth-bootstrap.sql` adds a privileged, narrowly scoped membership lookup. This function and `database/rls-hardening.sql` require careful function ownership and `GRANT EXECUTE` to the API-only database role; neither should be applied without verifying the role model. Never connect the static browser frontend directly to PostgreSQL.
 
 For the server you provide: Ubuntu LTS or Debian, SSH with an unprivileged sudo user, domain/subdomain pointing to the host, TLS certificate, Node 20+, and a process supervisor/reverse proxy. Share connection details through a secure mechanism, not a password pasted into a public repository. Configure OIDC provider before enabling API access.
+
+Publishing implementation: see `publishing-contract.md`. A manager-only authenticated publication endpoint is now present in source but depends on unapproved migrations, tested RLS and OIDC configuration; it is not live.
