@@ -47,3 +47,7 @@ The current browser CRM still uses local demo data. This module is **not wired i
 ## Production service preflight (not activated)
 
 `brokerone-api.service` is a proposed restricted systemd unit for a dedicated `brokerone` Unix user. `deployment-check.sh` refuses startup when Node.js 20+, a private environment file, or required variables are missing. Never write database credentials into the repository or the public web root. Only enable the service after domain/TLS, OIDC issuer and login flow, restricted DB role, verified office-scoped RLS, and backup/restore testing. Do not expose port 8080 publicly. Keep the current static CRM separate until the API is proven safe.
+
+## IP-only HTTPS plan
+
+The user has chosen to retain `77.42.93.209` and not purchase a domain. `nginx-ip-https.conf.example` is a **non-active** reference configuration for an IP-address certificate. Before enabling it, obtain a trusted certificate explicitly valid for the IP address, confirm automated renewal, open port 443, test nginx syntax, and verify rollback. Do not use a self-signed certificate for staff logins. The existing HTTP site must not be used for real customer data or bearer tokens.
