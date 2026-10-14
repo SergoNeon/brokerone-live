@@ -2,7 +2,7 @@
 
 This is a **development foundation, not a deployed production service**. It is intentionally separate from GitHub Pages, which only hosts the frontend. Do not enter real customer data into the current demo.
 
-Requires Node 20+, PostgreSQL, an existing trusted OpenID Connect identity provider with RS256 JWTs, and environment variables `DATABASE_URL`, `OIDC_ISSUER`, `OIDC_AUDIENCE`, `OIDC_JWKS_URL`, `ALLOWED_ORIGIN` and optional `PORT`.
+Requires Node 20+, PostgreSQL, an existing trusted OpenID Connect identity provider with EdDSA JWTs, and environment variables `DATABASE_URL`, `OIDC_ISSUER`, `OIDC_AUDIENCE`, `OIDC_JWKS_URL`, `ALLOWED_ORIGIN` and optional `PORT`.
 
 1. Provision a PostgreSQL instance and a separate migration owner role.
 2. Apply `../database/schema.sql` and review/test `../database/access-policy.sql` as the migration owner. The API database role must not own tables or have BYPASSRLS; grant only necessary table and sequence privileges.
