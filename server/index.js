@@ -6,6 +6,9 @@ import {createRemoteJWKSet,jwtVerify} from 'jose';
 
 const required=['DATABASE_URL','OIDC_ISSUER','OIDC_AUDIENCE','OIDC_JWKS_URL','ALLOWED_ORIGIN'];
 for(const key of required)if(!process.env[key])throw Error(`Missing ${key}`);
+if(!process.env.OIDC_ISSUER.startsWith("https://")||!process.env.OIDC_JWKS_URL.startsWith("https://"))throw Error("OIDC endpoints require HTTPS");
+if(!process.env.ALLOWED_ORIGIN.startsWith("https://"))throw Error("Allowed origin requires HTTPS");
+if(/REPLACE|example\.com/i.test(process.env.DATABASE_URL+process.env.OIDC_ISSUER+process.env.OIDC_JWKS_URL))throw Error("Placeholder configuration refused");
 const origin=new URL(process.env.ALLOWED_ORIGIN).origin;
 if(origin!==process.env.ALLOWED_ORIGIN)throw Error('ALLOWED_ORIGIN must be a single origin');
 const pool=new Pool({connectionString:process.env.DATABASE_URL,max:10,connectionTimeoutMillis:5000,statement_timeout:10000,query_timeout:12000});
