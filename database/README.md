@@ -1,0 +1,12 @@
+# Production database design (not deployed)
+
+`schema.sql` models **one office with multiple agents** and relational clients, properties, deals and tasks. Each record belongs to an office; composite foreign keys prevent cross-office references. Prices and commissions use ILS numeric fields.
+
+## Security requirements before any real user data
+
+1. Connect a managed Postgres database and identity provider through a trusted server, never GitHub Pages client JavaScript.
+2. Implement verified sessions, authorization for owner/manager/agent, and row-level security where supported. Default-deny all unauthenticated access.
+3. Add database migrations, audit logs, encrypted backups, rate limits and automated access-control tests.
+4. Keep API secrets and personal customer information out of the public demo repository.
+
+The GitHub Pages demo is **local-only**, not connected to this schema.
