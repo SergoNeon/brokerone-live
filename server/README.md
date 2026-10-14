@@ -19,3 +19,9 @@ Known gaps: refresh/session UX, input validation by resource, rate limits, audit
 - The existing RLS policy file uses `crm_is_manager()` from within the agents policy; this requires the reviewed security-definer hardening in `database/rls-hardening.sql` and correct function ownership. Do **not** deploy until that ownership and permissions are configured and tested.
 - New records require an active assigned agent in the same office; ordinary agents can assign only themselves.
 - The service must be hosted behind HTTPS and use a managed OIDC identity provider; no user/password implementation is included here.
+
+## Pre-deployment correction
+
+The original API membership query would fail under correctly enforced row-level security because it ran before tenant context was set. `database/auth-bootstrap.sql` adds a privileged, narrowly scoped membership lookup. This function and `database/rls-hardening.sql` require careful function ownership and `GRANT EXECUTE` to the API-only database role; neither should be applied without verifying the role model. Never connect the static browser frontend directly to PostgreSQL.
+
+For the server you provide: Ubuntu LTS or Debian, SSH with an unprivileged sudo user, domain/subdomain pointing to the host, TLS certificate, Node 20+, and a process supervisor/reverse proxy. Share connection details through a secure mechanism, not a password pasted into a public repository. Configure OIDC provider before enabling API access.
