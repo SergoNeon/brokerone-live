@@ -9,6 +9,7 @@ User=brokerone
 Group=brokerone
 WorkingDirectory=/opt/brokerone/api
 EnvironmentFile=/etc/brokerone/api.env
+ExecStartPre=/bin/sh /opt/brokerone/api/deployment-check.sh
 ExecStart=/usr/bin/node /opt/brokerone/api/index.js
 Restart=on-failure
 RestartSec=5
