@@ -29,3 +29,7 @@ For the server you provide: Ubuntu LTS or Debian, SSH with an unprivileged sudo 
 Publishing implementation: see `publishing-contract.md`. A manager-only authenticated publication endpoint is now present in source but depends on unapproved migrations, tested RLS and OIDC configuration; it is not live.
 
 Publication checks: `node publication-test.mjs` and `node smoke-test.mjs`. Public feed requires a separately reviewed read-only database access design under FORCE RLS; do not run the API with a table-owner or BYPASSRLS connection to make the public feed work.
+
+## Authenticated record updates
+
+`PATCH /v1/{clients,properties,deals,tasks}/{uuid}` updates only allowlisted columns within the caller's office and within the row-level-security scope. Changing `assigned_agent_id` requires an active agent in the same office; regular agents cannot reassign records. A missing or inaccessible row returns 404. This route requires verified OIDC JWT and tested RLS, and is not deployed yet. No browser fallback to localStorage should silently pretend that a server write succeeded.
