@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const api=readFileSync(new URL('./index.js',import.meta.url),'utf8');
+const service=readFileSync(new URL('./brokerone-api.service',import.meta.url),'utf8');
+const preflight=readFileSync(new URL('./deployment-check.sh',import.meta.url),'utf8');
+assert.match(api,/jwtVerify\(/,'JWT signature verification required');
+assert.match(api,/algorithms:\['RS256'\]/,'JWT algorithm restricted');
+assert.match(api,/crm_membership\(\$1\)/,'membership resolved on server');
+assert.match(api,/set_config\('app.office_id'/,'tenant context required');
+assert.match(api,/set_config\('app.agent_id'/,'agent context required');
+assert.match(api,/process.env.HOST\|\|'127.0.0.1'/,'loopback default required');
+assert.match(service,/User=brokerone/,'non-root service required');
+assert.match(service,/EnvironmentFile=\/etc\/brokerone\/api.env/,'private environment required');
+assert.match(preflight,/OIDC_JWKS_URL/,'identity config required');
+console.log('PASS API identity and tenant security static checks');
