@@ -1,5 +1,6 @@
 -- Review and apply through a tested migration before enabling public listings.
 -- Publishing is opt-in; all existing properties remain private by default.
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS listing_type text NOT NULL DEFAULT 'sale' CHECK (listing_type IN ('sale','rent'));
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS is_published boolean NOT NULL DEFAULT false;
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS public_title text;
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS public_city text;
